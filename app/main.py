@@ -170,12 +170,19 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/documents/upload", response_model=DocumentOut)
-async def upload_document(
+def upload_document(
     file: UploadFile = File(...),
     document_type: str = Form(""),
     language: str = Form("az"),
     db: Session = Depends(get_db),
 ):
+    # QEYD: bu handler qəsdən "async def" DEYİL. İçəridə Ollama-ya (analiz + hər chunk üçün
+    # embedding) uzun sürən, tam SİNXRON/bloklayıcı urllib çağırışları var. "async def" olsaydı,
+    # FastAPI bunu birbaşa tək asyncio event loop-unda işlədərdi — bu bloklayıcı çağırış davam
+    # etdiyi müddətdə (indi hər biri 300 saniyəyə qədər çəkə bilər) server HEÇ BİR başqa sorğunu
+    # (başqa istifadəçinin sualını, hətta sadə səhifə yüklənməsini) qəbul edə bilməzdi — məhz
+    # "server tamam donub" simptomunun səbəbi bu idi. Sinxron "def" olduqda isə FastAPI/Starlette
+    # bunu avtomatik ayrıca worker thread-də işlədir, event loop sərbəst qalır.
     original_name = file.filename or "document"
     suffix = Path(original_name).suffix.lower()
     if suffix not in {".pdf", ".docx", ".txt", ".jpg", ".jpeg", ".png"}:

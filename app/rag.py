@@ -37,11 +37,12 @@ _llm = Ollama(
     base_url=settings.ollama_base_url,
     request_timeout=300.0,
     # LlamaIndex-in defolt context_window-u 3900 token-dir — bir çox hüquqi sənəd bundan
-    # uzundur, ona görə mətnin bir hissəsi modelə göndərilmədən kəsilirdi (yazı xətası,
-    # xülasə kimi suallarda natamam/səhv cavabın əsas səbəbi idi). 8192-yə qaldırırıq ki,
-    # orta ölçülü sənədlər tam sığsın. Lazım gələrsə (çox uzun sənədlər üçün) bu ədəd daha
-    # da artırıla bilər, amma CPU-da hesablama vaxtı da mütənasib artacaq.
-    context_window=8192,
+    # uzundur. Əvvəlcə 8192-yə qaldırmışdıq, amma droplet-də bu, gemma3:1b-nin belə OOM
+    # (yaddaş bitib prosesin öldürülməsi) ilə nəticələnməsinə səbəb oldu — 8192 kontekst
+    # üçün KV-cache + hesablama buferləri 3.8GB-lıq serverdə Postgres/n8n/FastAPI-nin yanında
+    # sığmadı. 4096-ya endiririk: defolt-dan (3900) yenə bir az yaxşıdır, amma yaddaş
+    # baxımından TƏHLÜKƏSİZDİR. Server daha güclü olsa, bu ədəd yenidən artırıla bilər.
+    context_window=4096,
     # keep_alive: model hər sorğudan sonra yaddaşda qalsın — bir /ask içində LLMRerank
     # və response synthesizer ardıcıl bir neçə dəfə modelə müraciət edir; model hər dəfə
     # yenidən yüklənərsə (xüsusilə zəif CPU-lu serverdə) bu, əlavə vaxt itkisinə səbəb olur.

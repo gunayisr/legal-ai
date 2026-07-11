@@ -89,7 +89,7 @@ def _call_model(prompt_value) -> str:
         "keep_alive": "0",
         # num_ctx: Ollama-nın defolt context uzunluğu (server konfiqurasiyasından asılı
         # olaraq 2048-4096 ola bilər) uzun hüquqi sənədləri kəsə bilər — açıq təyin edirik.
-        "options": {"temperature": 0, "num_ctx": 8192},
+        "options": {"temperature": 0, "num_ctx": 4096},
     }).encode("utf-8")
     request = urllib.request.Request(
         f"{settings.ollama_base_url.rstrip('/')}/api/generate",
@@ -240,7 +240,7 @@ Mətn:
         # içində çağırılır — modeli dərhal boşaltsaq (keep_alive=0) növbəti çağırış yenidən
         # yükləmə gecikməsinə düşür (zəif CPU-lu serverdə bu, timeout-a səbəb olurdu).
         "keep_alive": "5m",
-        "options": {"temperature": 0, "num_ctx": 8192},
+        "options": {"temperature": 0, "num_ctx": 4096},
     }).encode("utf-8")
     request = urllib.request.Request(
         f"{settings.ollama_base_url.rstrip('/')}/api/generate",
@@ -270,7 +270,7 @@ SUAL / QUESTION: {question}"""
         "prompt": prompt_text,
         "stream": False,
         "keep_alive": "5m",
-        "options": {"temperature": 0, "num_ctx": 8192},
+        "options": {"temperature": 0, "num_ctx": 4096},
     }).encode("utf-8")
     request = urllib.request.Request(
         f"{settings.ollama_base_url.rstrip('/')}/api/generate",

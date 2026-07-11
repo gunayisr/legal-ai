@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from sqlalchemy import text as sql_text
 
-from .ai import analyze_document, answer_question
+from .ai import _ensure_azerbaijani, analyze_document, answer_question
 from .config import settings
 from .database import Base, SessionLocal, engine, get_db
 from .models import Analysis, Client, CourtEvent, Document, DocumentChunk, User
@@ -460,13 +460,23 @@ def _direct_analysis_answer(intent: str, documents: list[Document], language: st
         lines = [f"📄 {doc.original_filename}"]
         if intent == "grammar":
             issues = json.loads(doc.analysis.grammar_issues) if doc.analysis.grammar_issues else []
+            # analyze_document() indi yeni sənədlər üçün bunu yükləmə zamanı AZ-a düzəldir,
+            # amma bu fix-dən ƏVVƏL yüklənmiş sənədlərdə bazada hələ də yanlış dildə mətn
+            # ola bilər — çatda göstərmədən əvvəl burda da yoxlayıb düzəldirik.
+            if language == "az":
+                issues = [_ensure_azerbaijani(item) for item in issues]
             lines.append(f"{labels['grammar']}: " + ("; ".join(issues) if issues else labels["none"]))
         elif intent == "risk":
             risks = json.loads(doc.analysis.risks) if doc.analysis.risks else []
+            if language == "az":
+                risks = [_ensure_azerbaijani(item) for item in risks]
             lines.append(f"{labels['risk_score']}: {doc.analysis.risk_score}%")
             lines.append(f"{labels['risks']}: " + ("; ".join(risks) if risks else labels["none"]))
         else:  # summary
-            lines.append(f"{labels['summary']}: {doc.analysis.summary}")
+            summary = doc.analysis.summary
+            if language == "az":
+                summary = _ensure_azerbaijani(summary)
+            lines.append(f"{labels['summary']}: {summary}")
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks) if blocks else None
 

@@ -193,7 +193,17 @@ analysis_chain = prompt | RunnableLambda(_call_model) | StrOutputParser() | Runn
 
 
 def analyze_document(text: str, language: str = "az") -> dict:
-    return analysis_chain.invoke({"document_text": text[:30000], "language_line": _language_line(language)})
+    data = analysis_chain.invoke({"document_text": text[:30000], "language_line": _language_line(language)})
+    if language == "az":
+        # SYSTEM_PROMPT modelə AZ dilində yazmağı tapşırır, amma kiçik modellər bəzən
+        # buna əməl etmir — summary/risks/grammar_issues bazaya YANLIŞ dildə yazılıb
+        # qalırdı və çatdakı "xülasə/risk/yazı xətası" sualları (bax: main.py
+        # _direct_analysis_answer) bunu birbaşa, düzəlişsiz göstərirdi. Burda düzəldirik ki,
+        # bu sahələr bazaya HƏMİŞƏ Azərbaycan dilində yazılsın.
+        data["summary"] = _ensure_azerbaijani(data.get("summary", ""))
+        data["risks"] = [_ensure_azerbaijani(item) for item in data.get("risks", [])]
+        data["grammar_issues"] = [_ensure_azerbaijani(item) for item in data.get("grammar_issues", [])]
+    return data
 
 
 # Təlimatları hədəf dildə yazırıq — kiçik modellər öz dilindəki təlimatı ingiliscə "answer in X"
@@ -254,6 +264,17 @@ Mətn:
             return translated or text
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
         return text
+
+
+def _ensure_azerbaijani(text: str) -> str:
+    """Boş mətnə toxunmur; AZ-spesifik hərf yoxdursa (deməli başqa dildədir) tərcümə edir.
+    analyze_document() və main.py-dəki bazadan-birbaşa-cavab yolu (grammar/summary/risk
+    sualları) üçün istifadə olunur ki, yadda saxlanan analiz nəticələri həmişə Azərbaycan
+    dilində olsun."""
+    text = (text or "").strip()
+    if not text or _looks_azerbaijani(text):
+        return text
+    return _translate_to_azerbaijani(text)
 
 
 def answer_question(question: str, document_context: str, language: str = "az") -> str:

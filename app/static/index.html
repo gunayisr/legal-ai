@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="az" data-theme="corporate">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LegalAI</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Manrope', sans-serif; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.4); border-radius: 999px; }
+    .nav-btn { transition: all .15s ease; }
+    .card-pop { transition: transform .15s ease, box-shadow .15s ease; }
+    .card-pop:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -8px rgba(30,41,59,.25); }
+  </style>
+  <script>
+    // Giriş edilməyibsə login səhifəsinə yönləndir (sadə client-side qapı, real sessiya təhlükəsizliyi deyil).
+    if (!sessionStorage.getItem('legalai_authed')) { window.location.href = '/ui/login.html'; }
+  </script>
+</head>
+<body class="h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100">
+  <div class="mx-auto flex h-screen max-w-7xl bg-base-100/80 shadow-2xl">
+    <aside class="flex h-full w-60 shrink-0 flex-col gap-1.5 overflow-y-auto bg-slate-900 p-4 text-white">
+      <div class="mb-5 flex items-center gap-2">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg">⚖️</span>
+        <div>
+          <div class="text-lg font-extrabold leading-tight">LegalAI</div>
+          <div class="text-[11px] text-white/70">Sənəd köməkçisi</div>
+        </div>
+      </div>
+      <button data-view="chat" class="nav-btn btn btn-ghost nav-active justify-start border-none text-white hover:bg-white/15">💬 Chat</button>
+      <button data-view="search" class="nav-btn btn btn-ghost justify-start border-none text-white/85 hover:bg-white/15">🔍 Axtarış</button>
+      <button data-view="summary" class="nav-btn btn btn-ghost justify-start border-none text-white/85 hover:bg-white/15">📄 Xülasə</button>
+      <button data-view="deadlines" class="nav-btn btn btn-ghost justify-start border-none text-white/85 hover:bg-white/15">⏰ Müddətlər</button>
+      <div class="mt-auto pt-4">
+        <label class="label"><span class="label-text text-xs text-white/70">Cavab dili</span></label>
+        <select id="languageSelect" class="select select-sm w-full border-white/20 bg-white/10 text-white">
+          <option value="az" selected class="text-base-content">Azərbaycan</option>
+          <option value="en" class="text-base-content">English</option>
+          <option value="ru" class="text-base-content">Русский</option>
+        </select>
+        <button id="logoutBtn" class="btn btn-ghost btn-sm mt-3 w-full justify-start border-none text-white/70 hover:bg-white/15">⏻ Çıxış</button>
+      </div>
+    </aside>
+
+    <main class="flex h-full flex-1 flex-col overflow-hidden bg-base-100">
+      <section id="view-chat" class="view flex min-h-0 flex-1 flex-col">
+        <header class="navbar shrink-0 border-b border-base-300 bg-white/70 px-6 backdrop-blur"><div class="flex-1"><span class="font-bold text-slate-800">💬 Chat</span></div></header>
+        <div id="chat" class="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+          <div class="chat chat-start"><div class="chat-image avatar"><div class="w-9 rounded-full bg-slate-800 text-white grid place-items-center">⚖️</div></div><div class="chat-bubble border border-gray-200 bg-gray-100 text-base-content shadow-sm">Salam,<br>analiz edə bilməyim üçün sənəd yüklə.</div></div>
+        </div>
+        <footer class="shrink-0 border-t border-base-300 bg-white/70 p-4 backdrop-blur">
+          <div id="fileName" class="mb-2 hidden text-sm text-slate-600"></div>
+          <form id="chatForm" class="flex items-end gap-2">
+            <input id="fileInput" type="file" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png" class="hidden">
+            <button id="attach" type="button" class="btn btn-square border-none bg-gray-200 text-slate-800 hover:bg-gray-300" title="Fayl yüklə">📎</button>
+            <textarea id="message" rows="1" class="textarea textarea-bordered flex-1 resize-none focus:border-slate-400 focus:outline-none" placeholder="Sualınızı yazın... (Enter göndərir, Shift+Enter yeni sətir)"></textarea>
+            <button class="btn border-none bg-slate-900 text-white hover:bg-slate-800" type="submit">Göndər</button>
+          </form>
+          <p class="mt-2 text-xs text-base-content/50">AI nəticəsi ilkin yoxlamadır, hüquqi məsləhət deyil.</p>
+        </footer>
+      </section>
+
+      <section id="view-search" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-6">
+        <h2 class="mb-1 text-lg font-bold text-slate-800">🔍 Axtarış</h2>
+        <p class="mb-4 text-sm text-base-content/60">Ad, soyad, fayl adı və ya sənəd mətninin içindəki sözlərə görə axtarın.</p>
+        <div class="mb-4 flex gap-2">
+          <input id="searchInput" class="input input-bordered flex-1 focus:border-slate-400 focus:outline-none" placeholder="məs. Əli Məmmədov, ya da 'etibarnamə'">
+          <button id="searchBtn" class="btn border-none bg-slate-900 text-white hover:bg-slate-800">Axtar</button>
+        </div>
+        <div id="searchResults" class="space-y-3"></div>
+      </section>
+
+      <section id="view-summary" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-6">
+        <h2 class="mb-1 text-lg font-bold text-slate-800">📄 Xülasə</h2>
+        <p class="mb-4 text-sm text-base-content/60">Yüklənmiş sənədlərdən birini seçin, hazır AI xülasəsinə baxın.</p>
+        <select id="summarySelect" class="select select-bordered mb-4 w-full focus:border-slate-400 focus:outline-none"><option value="">Sənəd seçin...</option></select>
+        <div id="summaryResult"></div>
+      </section>
+
+      <section id="view-deadlines" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-6">
+        <h2 class="mb-1 text-lg font-bold text-slate-800">⏰ Müddətlər</h2>
+        <p class="mb-4 text-sm text-base-content/60">Yaxınlaşan məhkəmə günləri və müqavilə bitmə tarixləri (müqavilələr yükləndikdə tarix avtomatik tapılır).</p>
+        <div id="deadlineList" class="mb-6 space-y-2"></div>
+        <div class="divider text-xs text-base-content/50">Yeni tarix əlavə et / axtar</div>
+        <p class="mb-2 text-xs text-base-content/50">Tarixi boş buraxıb yalnız müştəri adını yazsan, mövcud müddətlər axtarılır. Tarix də doldursan, yeni yazı əlavə olunur.</p>
+        <form id="deadlineForm" class="grid grid-cols-2 gap-3">
+          <input id="dClient" class="input input-bordered col-span-2 focus:border-slate-400 focus:outline-none" placeholder="Müştəri adı" required>
+          <select id="dType" class="select select-bordered focus:border-slate-400 focus:outline-none">
+            <option value="court">Məhkəmə günü</option>
+            <option value="contract">Müqavilə bitmə tarixi</option>
+          </select>
+          <input id="dDate" type="datetime-local" class="input input-bordered focus:border-slate-400 focus:outline-none">
+          <input id="dCase" class="input input-bordered focus:border-slate-400 focus:outline-none" placeholder="İş nömrəsi (istəyə görə)">
+          <input id="dNote" class="input input-bordered focus:border-slate-400 focus:outline-none" placeholder="Qeyd (istəyə görə)">
+          <button class="btn col-span-2 border-none bg-slate-900 text-white hover:bg-slate-800" type="submit">Əlavə et / Axtar</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat'), file = document.getElementById('fileInput'), message = document.getElementById('message'), fileName = document.getElementById('fileName');
+    const languageSelect = document.getElementById('languageSelect');
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const botAvatar = '<div class="chat-image avatar"><div class="w-9 rounded-full bg-slate-800 text-white grid place-items-center">⚖️</div></div>';
+    const add = (side, html) => { chat.insertAdjacentHTML('beforeend', `<div class="chat chat-${side}">${side === 'start' ? botAvatar : ''}<div class="chat-bubble shadow-sm ${side === 'end' ? 'border-none bg-slate-900 text-white' : 'border border-gray-200 bg-gray-100 text-base-content'}">${html}</div></div>`); chat.scrollTop = chat.scrollHeight; };
+    const risk = score => `<span class="badge ${score >= 70 ? 'badge-error' : score >= 40 ? 'badge-warning' : 'badge-success'} ml-2 font-semibold">Risk: ${esc(score)}%</span>`;
+    const list = values => values?.length ? `<ul class="mt-1 list-inside list-disc">${values.map(v => `<li>${esc(v)}</li>`).join('')}</ul>` : '<span class="text-base-content/60">Tapılmadı.</span>';
+    const sourcesTable = sources => {
+      if (!sources?.length) return '';
+      const rows = sources.map(s => `<tr><td>${esc(s.filename)}</td><td class="text-right">${esc(s.score)}%</td></tr>`).join('');
+      return `<div class="mt-3 overflow-x-auto"><p class="mb-1 text-xs font-semibold text-base-content/50">Ən uyğun mənbələr</p><table class="table table-xs"><thead><tr><th>Sənəd</th><th class="text-right">Uyğunluq</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    };
+    const report = d => { const title = /(^|; )(?:Sədr|Hakim|Katib|Vəkil):/i.test(d.client_name) ? 'Sənəddə qeyd olunan vəzifəli şəxslər' : 'Müştəri'; const noFindings = !d.analysis.risks?.length && !d.analysis.grammar_issues?.length; return `<div><b>Sənəd yaddaşa əlavə edildi</b>${risk(d.analysis.risk_score)}<div class="divider my-2"></div><p><b>${title}:</b> ${esc(d.client_name)}</p><p><b>Sənəd tipi:</b> ${esc(d.document_type)}</p>${noFindings ? '<p class="mt-2 text-success">Konkret risk və ya yazı xətası aşkar edilmədi.</p>' : `<p class="mt-2"><b>Riskli məqamlar:</b> ${list(d.analysis.risks)}</p><p class="mt-2"><b>Yazı və qrammatika xətaları:</b> ${list(d.analysis.grammar_issues)}</p>`}<p class="mt-3 text-sm text-base-content/60">Xülasə üçün chat-a “Bu sənədin xülasəsini ver” yazın.</p></div>`; };
+
+    // Backend /ask-ı NDJSON axını kimi oxuyur — hər sətir bir addım (progress) və ya son
+    // nəticədir ("done"). onProgress hər mərhələdə çağrılır ki, istifadəçi backend-də nə
+    // baş verdiyini görsün (embedding, axtarış, rerank, LLM cavabı və s.).
+    async function askStreaming(payload, onProgress, onDone) {
+      const response = await fetch('/ask', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+      if (!response.ok || !response.body) {
+        onDone({answer: 'Serverdən cavab alınmadı. Bir azdan yenidən cəhd edin.', sources: []});
+        return;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, {stream: true});
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event;
+          try { event = JSON.parse(line); } catch { continue; }
+          if (event.stage === 'done') onDone(event);
+          else if (event.stage === 'progress') onProgress(event.message);
+        }
+      }
+    }
+
+    document.getElementById('logoutBtn').onclick = () => { sessionStorage.removeItem('legalai_authed'); window.location.href = '/ui/login.html'; };
+    document.getElementById('attach').onclick = () => file.click();
+    file.onchange = () => { if (file.files[0]) { fileName.textContent = '📎 Seçilən fayl: ' + file.files[0].name; fileName.classList.remove('hidden'); }};
+    // Enter göndərir, Shift+Enter yeni sətir başladır (textarea-nın defolt davranışı) — yalnız sadə Enter-i tuturuq.
+    message.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('chatForm').requestSubmit();
+      }
+    });
+    document.getElementById('chatForm').onsubmit = async e => {
+      e.preventDefault();
+      const chosen = file.files[0];
+      const question = message.value.trim();
+      if (!chosen && !question) return;
+
+      if (chosen) {
+        add('end', `📎 ${esc(chosen.name)}${question ? `<br>${esc(question)}` : ''}`);
+        message.value = ''; file.value = ''; fileName.classList.add('hidden');
+        add('start', '<span class="loading loading-dots text-slate-600"></span> Sənəd analiz edilir...');
+        const form = new FormData(); form.append('file', chosen); form.append('language', languageSelect.value);
+        const uploadResponse = await fetch('/documents/upload', {method: 'POST', body: form});
+        const uploadData = await uploadResponse.json();
+        chat.lastElementChild.remove();
+        if (!uploadResponse.ok) { add('start', `<span class="text-error">Xəta: ${esc(uploadData.detail || 'Yükləmə alınmadı')}</span>`); return; }
+        add('start', report(uploadData));
+
+        if (question) {
+          add('start', '<span class="loading loading-dots text-slate-600"></span> <span class="ask-status">Sual analiz edilir...</span>');
+          const statusEl = chat.lastElementChild.querySelector('.ask-status');
+          await askStreaming(
+            {question, client_name: uploadData.client_name || '', language: languageSelect.value},
+            msg => { if (statusEl) statusEl.textContent = msg; },
+            askData => { chat.lastElementChild.remove(); add('start', `<p>${esc(askData.answer)}</p>${sourcesTable(askData.sources)}`); }
+          );
+        }
+        return;
+      }
+
+      add('end', esc(question)); message.value = '';
+      add('start', '<span class="loading loading-dots text-slate-600"></span> <span class="ask-status">Sual analiz edilir...</span>');
+      const statusEl = chat.lastElementChild.querySelector('.ask-status');
+      await askStreaming(
+        {question, client_name: '', language: languageSelect.value},
+        msg => { if (statusEl) statusEl.textContent = msg; },
+        data => { chat.lastElementChild.remove(); add('start', `<p>${esc(data.answer)}</p>${sourcesTable(data.sources)}`); }
+      );
+    };
+
+    // ---- Sol menyu naviqasiyası ----
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const views = document.querySelectorAll('.view');
+    const setActiveNav = btn => {
+      navBtns.forEach(b => { b.classList.remove('nav-active', 'bg-white/20', 'text-white', 'shadow'); b.classList.add('text-white/85'); });
+      btn.classList.add('nav-active', 'bg-white/20', 'text-white', 'shadow');
+      btn.classList.remove('text-white/85');
+    };
+    navBtns.forEach(btn => btn.onclick = () => {
+      setActiveNav(btn);
+      views.forEach(v => v.classList.add('hidden'));
+      document.getElementById('view-' + btn.dataset.view).classList.remove('hidden');
+      if (btn.dataset.view === 'search') loadDocuments('');
+      if (btn.dataset.view === 'summary') loadSummaryOptions();
+      if (btn.dataset.view === 'deadlines') loadDeadlines();
+    });
+
+    // ---- Axtarış ----
+    const riskBorder = score => score >= 70 ? 'border-l-4 border-red-400' : score >= 40 ? 'border-l-4 border-amber-400' : 'border-l-4 border-emerald-400';
+    const docCard = d => `<div class="card-pop rounded-xl bg-base-200 p-4 shadow-sm ${riskBorder(d.analysis.risk_score)}">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="font-semibold">${esc(d.client_name)}</p>
+          <p class="text-sm text-base-content/60">${esc(d.original_filename)} • ${esc(d.document_type)} • ${new Date(d.created_at).toLocaleDateString('az-AZ')}</p>
+        </div>
+        ${risk(d.analysis.risk_score)}
+      </div>
+      <p class="mt-2 text-sm">${esc(d.analysis.summary)}</p>
+    </div>`;
+    async function loadDocuments(q) {
+      const container = document.getElementById('searchResults');
+      container.innerHTML = '<span class="loading loading-dots text-slate-600"></span>';
+      const url = q ? `/search?q=${encodeURIComponent(q)}` : '/documents';
+      const res = await fetch(url);
+      const data = await res.json();
+      container.innerHTML = data.length ? data.map(docCard).join('') : '<p class="text-base-content/60">🔎 Nəticə tapılmadı.</p>';
+    }
+    document.getElementById('searchBtn').onclick = () => loadDocuments(document.getElementById('searchInput').value.trim());
+    document.getElementById('searchInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); loadDocuments(document.getElementById('searchInput').value.trim()); }
+    });
+
+    // ---- Xülasə ----
+    async function loadSummaryOptions() {
+      const res = await fetch('/documents');
+      const data = await res.json();
+      window.__summaryDocs = data;
+      const select = document.getElementById('summarySelect');
+      select.innerHTML = '<option value="">Sənəd seçin...</option>' + data.map(d => `<option value="${d.id}">${esc(d.client_name)} — ${esc(d.original_filename)}</option>`).join('');
+      document.getElementById('summaryResult').innerHTML = '';
+    }
+    document.getElementById('summarySelect').onchange = e => {
+      const id = Number(e.target.value);
+      const doc = (window.__summaryDocs || []).find(d => d.id === id);
+      const result = document.getElementById('summaryResult');
+      if (!doc) { result.innerHTML = ''; return; }
+      result.innerHTML = `<div class="rounded-xl bg-base-200 p-4 shadow-sm ${riskBorder(doc.analysis.risk_score)}">
+        ${risk(doc.analysis.risk_score)}
+        <h3 class="mt-2 font-bold">${esc(doc.client_name)}</h3>
+        <p class="text-sm text-base-content/60">${esc(doc.original_filename)} • ${esc(doc.document_type)}</p>
+        <div class="divider my-2"></div>
+        <p>${esc(doc.analysis.summary)}</p>
+        ${doc.analysis.risks.length ? `<p class="mt-2"><b>Risklər:</b> ${list(doc.analysis.risks)}</p>` : ''}
+        ${doc.analysis.grammar_issues.length ? `<p class="mt-2"><b>Yazı xətaları:</b> ${list(doc.analysis.grammar_issues)}</p>` : ''}
+      </div>`;
+    };
+
+    // ---- Müddətlər ----
+    const deadlineCard = e => {
+      const badge = e.event_type === 'contract' ? '<span class="badge badge-warning font-semibold">Müqavilə</span>' : '<span class="badge badge-info font-semibold">Məhkəmə</span>';
+      const dt = new Date(e.court_date).toLocaleString('az-AZ');
+      return `<div class="card-pop rounded-xl bg-base-200 p-3 shadow-sm border-l-4 ${e.event_type === 'contract' ? 'border-amber-400' : 'border-sky-400'}">
+        <p class="font-semibold">${esc(e.client_name)} ${badge}</p>
+        <p class="text-sm text-base-content/60">${dt}${e.case_number ? ' • iş № ' + esc(e.case_number) : ''}${e.note ? ' • ' + esc(e.note) : ''}</p>
+      </div>`;
+    };
+    async function loadDeadlines(clientName) {
+      const container = document.getElementById('deadlineList');
+      container.innerHTML = '<span class="loading loading-dots text-slate-600"></span>';
+      const url = clientName ? `/court-events/upcoming?client_name=${encodeURIComponent(clientName)}` : '/court-events/upcoming';
+      const res = await fetch(url);
+      const data = await res.json();
+      container.innerHTML = data.length ? data.map(deadlineCard).join('') : '<p class="text-base-content/60">📭 Yaxınlaşan tarix yoxdur.</p>';
+    }
+    document.getElementById('deadlineForm').onsubmit = async e => {
+      e.preventDefault();
+      const clientName = document.getElementById('dClient').value.trim();
+      const courtDate = document.getElementById('dDate').value;
+      if (!clientName) return;
+
+      // Tarix boşdursa — yeni yazı əlavə etmək əvəzinə həmin müştərinin mövcud müddətlərini axtarırıq.
+      if (!courtDate) {
+        loadDeadlines(clientName);
+        return;
+      }
+
+      const payload = {
+        client_name: clientName,
+        court_date: courtDate,
+        case_number: document.getElementById('dCase').value.trim(),
+        note: document.getElementById('dNote').value.trim(),
+        event_type: document.getElementById('dType').value,
+      };
+      await fetch('/court-events', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+      e.target.reset();
+      loadDeadlines();
+    };
+  </script>
+</body>
+</html>

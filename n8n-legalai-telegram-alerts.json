@@ -1,0 +1,154 @@
+{
+  "name": "LegalAI Telegram Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "minutes", "minutesInterval": 30 }
+          ]
+        }
+      },
+      "id": "schedule-trigger-1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-200, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://api:8000/alerts/risky-documents",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "threshold", "value": "70" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-risky-get",
+      "name": "Get Risky Documents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [40, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of $input.all()) {\n  const data = item.json;\n  if (Array.isArray(data)) {\n    for (const d of data) out.push({ json: d });\n  } else {\n    out.push({ json: data });\n  }\n}\nreturn out;"
+      },
+      "id": "code-risky-normalize",
+      "name": "Normalize Risky Docs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 160]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "=⚠️ Risk: {{$json.risk_score}}% — {{$json.client_name}} ({{$json.original_filename}})\n\n{{$json.summary}}",
+        "additionalFields": {}
+      },
+      "id": "telegram-risky-send",
+      "name": "Send Risk Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [480, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://api:8000/alerts/risky-documents/{{$json.document_id}}/mark-notified",
+        "options": {}
+      },
+      "id": "http-risky-mark",
+      "name": "Mark Risky Notified",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 160]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://api:8000/alerts/deadlines",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "days", "value": "3" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-deadline-get",
+      "name": "Get Deadlines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [40, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of $input.all()) {\n  const data = item.json;\n  if (Array.isArray(data)) {\n    for (const d of data) out.push({ json: d });\n  } else {\n    out.push({ json: data });\n  }\n}\nreturn out;"
+      },
+      "id": "code-deadline-normalize",
+      "name": "Normalize Deadlines",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 440]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "=📅 Yaxınlaşan tarix: {{$json.client_name}} — {{$json.court_date}} ({{$json.event_type}})\niş № {{$json.case_number}}\n{{$json.note}}",
+        "additionalFields": {}
+      },
+      "id": "telegram-deadline-send",
+      "name": "Send Deadline Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [480, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://api:8000/alerts/deadlines/{{$json.event_id}}/mark-notified",
+        "options": {}
+      },
+      "id": "http-deadline-mark",
+      "name": "Mark Deadline Notified",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 440]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          { "node": "Get Risky Documents", "type": "main", "index": 0 },
+          { "node": "Get Deadlines", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Risky Documents": {
+      "main": [[{ "node": "Normalize Risky Docs", "type": "main", "index": 0 }]]
+    },
+    "Normalize Risky Docs": {
+      "main": [[{ "node": "Send Risk Alert", "type": "main", "index": 0 }]]
+    },
+    "Send Risk Alert": {
+      "main": [[{ "node": "Mark Risky Notified", "type": "main", "index": 0 }]]
+    },
+    "Get Deadlines": {
+      "main": [[{ "node": "Normalize Deadlines", "type": "main", "index": 0 }]]
+    },
+    "Normalize Deadlines": {
+      "main": [[{ "node": "Send Deadline Alert", "type": "main", "index": 0 }]]
+    },
+    "Send Deadline Alert": {
+      "main": [[{ "node": "Mark Deadline Notified", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "pinData": {}
+}

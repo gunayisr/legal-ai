@@ -1,0 +1,57 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: legalai
+      POSTGRES_USER: legalai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-legalai_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Yalnız öz kompüterinizdən (127.0.0.1) əlçatandır — serverə/internetə açıq deyil.
+      # "docker compose exec db psql ..." bu mapping olmadan da işləyir, bu sadəcə
+      # istəsəniz lokal pgAdmin/TablePlus kimi vasitə ilə qoşulmaq üçündür.
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legalai -d legalai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://legalai:${POSTGRES_PASSWORD:-legalai_password}@db:5432/legalai
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    extra_hosts:
+      # "host.docker.internal" Mac-də Docker Desktop tərəfindən avtomatik işləyir, amma Linux
+      # server (Digital Ocean droplet) üzərində bunu əl ilə tanıtmaq lazımdır ki, Ollama'ya
+      # (serverin özündə işləyəcək) eyni ünvanla çatmaq mümkün olsun — .env-i dəyişmədən.
+      - "host.docker.internal:host-gateway"
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-change-this-password}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  postgres_data:
+  n8n_data:

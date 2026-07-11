@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="az" data-theme="corporate">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LegalAI — Giriş</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Manrope', sans-serif; }</style>
+</head>
+<body class="min-h-screen bg-white">
+  <div class="grid min-h-screen grid-cols-1 md:grid-cols-2">
+    <!-- Sol: giriş / qeydiyyat formu -->
+    <div class="flex flex-col justify-center px-8 py-12 md:px-16 lg:px-24">
+      <div class="mb-8 flex items-center gap-2">
+        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-lg text-white">⚖️</span>
+        <span class="text-xl font-extrabold text-slate-900">LegalAI</span>
+      </div>
+
+      <h1 id="formTitle" class="mb-8 text-3xl font-extrabold text-base-content md:text-4xl">Şəxsi kabinetə daxil ol</h1>
+
+      <div class="mb-8 flex gap-6 border-b border-base-300 text-sm font-semibold text-base-content/50">
+        <span class="border-b-2 border-slate-900 pb-3 text-slate-900">💬 Chat</span>
+        <span class="pb-3">🔍 Axtarış</span>
+        <span class="pb-3">📄 Xülasə</span>
+        <span class="pb-3">⏰ Müddətlər</span>
+      </div>
+
+      <form id="loginForm" class="max-w-sm space-y-4">
+        <div>
+          <label class="label"><span class="label-text">İstifadəçi adı</span></label>
+          <input id="username" class="input input-bordered w-full focus:border-slate-400 focus:outline-none" placeholder="İstifadəçi adı" autocomplete="username" required>
+        </div>
+        <div>
+          <label class="label"><span class="label-text">Parol</span></label>
+          <input id="password" type="password" class="input input-bordered w-full focus:border-slate-400 focus:outline-none" placeholder="Parol" autocomplete="current-password" required>
+        </div>
+        <p id="loginError" class="hidden text-sm text-error"></p>
+        <button class="btn w-full border-none bg-slate-900 text-white hover:bg-slate-800" type="submit">Daxil ol</button>
+      </form>
+
+      <form id="registerForm" class="hidden max-w-sm space-y-4">
+        <div>
+          <label class="label"><span class="label-text">İstifadəçi adı</span></label>
+          <input id="regUsername" class="input input-bordered w-full focus:border-slate-400 focus:outline-none" placeholder="İstifadəçi adı (ən azı 3 simvol)" autocomplete="username" required>
+        </div>
+        <div>
+          <label class="label"><span class="label-text">Parol</span></label>
+          <input id="regPassword" type="password" class="input input-bordered w-full focus:border-slate-400 focus:outline-none" placeholder="Parol (ən azı 4 simvol)" autocomplete="new-password" required>
+        </div>
+        <div>
+          <label class="label"><span class="label-text">Parolu təkrarla</span></label>
+          <input id="regPassword2" type="password" class="input input-bordered w-full focus:border-slate-400 focus:outline-none" placeholder="Parolu təkrar yazın" autocomplete="new-password" required>
+        </div>
+        <p id="registerError" class="hidden text-sm text-error"></p>
+        <p id="registerSuccess" class="hidden text-sm text-success"></p>
+        <button class="btn w-full border-none bg-slate-900 text-white hover:bg-slate-800" type="submit">Qeydiyyatdan keç</button>
+      </form>
+
+      <p class="mt-6 max-w-sm text-sm text-base-content/70">
+        <span id="toLoginWrap" class="hidden">Artıq hesabınız var? <button id="toLogin" type="button" class="font-semibold text-slate-900 underline">Daxil olun</button></span>
+        <span id="toRegisterWrap">Hesabınız yoxdur? <button id="toRegister" type="button" class="font-semibold text-slate-900 underline">Qeydiyyatdan keçin</button></span>
+      </p>
+
+      <p class="mt-8 text-xs text-base-content/40">AI nəticələri ilkin yoxlamadır, hüquqi məsləhət deyil.</p>
+    </div>
+
+    <!-- Sağ: imkanlar -->
+    <div class="relative hidden flex-col justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-16 py-12 text-white md:flex">
+      <div class="pointer-events-none absolute -right-10 top-10 text-[220px] opacity-10">⚖️</div>
+      <h2 class="mb-8 text-3xl font-extrabold md:text-4xl">İmkanlar</h2>
+      <ul class="space-y-5 text-lg">
+        <li class="flex items-start gap-3"><span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-sm text-emerald-950">✓</span>Mövcud olan işlər üzrə axtarış imkanı</li>
+        <li class="flex items-start gap-3"><span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-sm text-emerald-950">✓</span>Məhkəmə sənədlərində yanlışların aşkar olunması</li>
+        <li class="flex items-start gap-3"><span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-sm text-emerald-950">✓</span>Məhkəmə sənədlərinin xülasəsi</li>
+        <li class="flex items-start gap-3"><span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-sm text-emerald-950">✓</span>İddia ərizəsi göndərmək</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const formTitle = document.getElementById('formTitle');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const toLoginWrap = document.getElementById('toLoginWrap');
+    const toRegisterWrap = document.getElementById('toRegisterWrap');
+
+    function showRegister() {
+      loginForm.classList.add('hidden');
+      registerForm.classList.remove('hidden');
+      toLoginWrap.classList.remove('hidden');
+      toRegisterWrap.classList.add('hidden');
+      formTitle.textContent = 'Yeni hesab yarat';
+      document.getElementById('registerError').classList.add('hidden');
+      document.getElementById('registerSuccess').classList.add('hidden');
+    }
+    function showLogin() {
+      registerForm.classList.add('hidden');
+      loginForm.classList.remove('hidden');
+      toLoginWrap.classList.add('hidden');
+      toRegisterWrap.classList.remove('hidden');
+      formTitle.textContent = 'Şəxsi kabinetə daxil ol';
+      document.getElementById('loginError').classList.add('hidden');
+    }
+    document.getElementById('toRegister').onclick = showRegister;
+    document.getElementById('toLogin').onclick = showLogin;
+
+    loginForm.onsubmit = async e => {
+      e.preventDefault();
+      const errorEl = document.getElementById('loginError');
+      errorEl.classList.add('hidden');
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!response.ok) {
+        errorEl.textContent = 'İstifadəçi adı və ya parol yanlışdır.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      sessionStorage.setItem('legalai_authed', '1');
+      window.location.href = '/ui/';
+    };
+
+    registerForm.onsubmit = async e => {
+      e.preventDefault();
+      const errorEl = document.getElementById('registerError');
+      const successEl = document.getElementById('registerSuccess');
+      errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const password2 = document.getElementById('regPassword2').value;
+
+      if (password !== password2) {
+        errorEl.textContent = 'Parollar üst-üstə düşmür.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const response = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        errorEl.textContent = data.detail || 'Qeydiyyat alınmadı.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      sessionStorage.setItem('legalai_authed', '1');
+      window.location.href = '/ui/';
+    };
+  </script>
+</body>
+</html>

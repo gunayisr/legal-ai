@@ -87,7 +87,9 @@ def _call_model(prompt_value) -> str:
         "stream": False,
         "format": ANALYSIS_SCHEMA,
         "keep_alive": "0",
-        "options": {"temperature": 0},
+        # num_ctx: Ollama-nın defolt context uzunluğu (server konfiqurasiyasından asılı
+        # olaraq 2048-4096 ola bilər) uzun hüquqi sənədləri kəsə bilər — açıq təyin edirik.
+        "options": {"temperature": 0, "num_ctx": 8192},
     }).encode("utf-8")
     request = urllib.request.Request(
         f"{settings.ollama_base_url.rstrip('/')}/api/generate",
@@ -96,7 +98,7 @@ def _call_model(prompt_value) -> str:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=90) as response:
+        with urllib.request.urlopen(request, timeout=300) as response:
             raw = json.loads(response.read().decode("utf-8"))["response"]
             # Modelin xam cavabını loglayırıq ki, "grammar_issues niyə boşdur" kimi halları
             # docker compose logs api ilə diaqnostika etmək mümkün olsun.
@@ -174,7 +176,7 @@ def embed_text(text: str) -> list[float] | None:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=300) as response:
             data = json.loads(response.read().decode("utf-8"))
             embedding = data.get("embedding")
             return embedding if embedding else None
@@ -234,8 +236,11 @@ Mətn:
         "model": settings.ollama_model,
         "prompt": prompt_text,
         "stream": False,
-        "keep_alive": "0",
-        "options": {"temperature": 0},
+        # 5m: bu funksiya çox zaman rag.py/answer_question-dan dərhal sonra, eyni sorğu
+        # içində çağırılır — modeli dərhal boşaltsaq (keep_alive=0) növbəti çağırış yenidən
+        # yükləmə gecikməsinə düşür (zəif CPU-lu serverdə bu, timeout-a səbəb olurdu).
+        "keep_alive": "5m",
+        "options": {"temperature": 0, "num_ctx": 8192},
     }).encode("utf-8")
     request = urllib.request.Request(
         f"{settings.ollama_base_url.rstrip('/')}/api/generate",
@@ -244,7 +249,7 @@ Mətn:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=300) as response:
             translated = json.loads(response.read().decode("utf-8")).get("response", "").strip()
             return translated or text
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
@@ -264,8 +269,8 @@ SUAL / QUESTION: {question}"""
         "model": settings.ollama_model,
         "prompt": prompt_text,
         "stream": False,
-        "keep_alive": "0",
-        "options": {"temperature": 0},
+        "keep_alive": "5m",
+        "options": {"temperature": 0, "num_ctx": 8192},
     }).encode("utf-8")
     request = urllib.request.Request(
         f"{settings.ollama_base_url.rstrip('/')}/api/generate",
@@ -274,7 +279,7 @@ SUAL / QUESTION: {question}"""
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=90) as response:
+        with urllib.request.urlopen(request, timeout=300) as response:
             answer = json.loads(response.read().decode("utf-8")).get("response", "").strip()
             if not answer:
                 return "Sənədlərə əsaslanan cavab yaradıla bilmədi."

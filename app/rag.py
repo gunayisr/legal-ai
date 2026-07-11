@@ -35,8 +35,17 @@ logger = logging.getLogger("legalai.rag")
 _llm = Ollama(
     model=settings.ollama_model,
     base_url=settings.ollama_base_url,
-    request_timeout=90.0,
-    additional_kwargs={"temperature": 0},
+    request_timeout=300.0,
+    # LlamaIndex-in defolt context_window-u 3900 token-dir — bir çox hüquqi sənəd bundan
+    # uzundur, ona görə mətnin bir hissəsi modelə göndərilmədən kəsilirdi (yazı xətası,
+    # xülasə kimi suallarda natamam/səhv cavabın əsas səbəbi idi). 8192-yə qaldırırıq ki,
+    # orta ölçülü sənədlər tam sığsın. Lazım gələrsə (çox uzun sənədlər üçün) bu ədəd daha
+    # da artırıla bilər, amma CPU-da hesablama vaxtı da mütənasib artacaq.
+    context_window=8192,
+    # keep_alive: model hər sorğudan sonra yaddaşda qalsın — bir /ask içində LLMRerank
+    # və response synthesizer ardıcıl bir neçə dəfə modelə müraciət edir; model hər dəfə
+    # yenidən yüklənərsə (xüsusilə zəif CPU-lu serverdə) bu, əlavə vaxt itkisinə səbəb olur.
+    additional_kwargs={"temperature": 0, "keep_alive": "5m"},
 )
 _embed_model = OllamaEmbedding(
     model_name=settings.embedding_model,

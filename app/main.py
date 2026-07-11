@@ -405,6 +405,65 @@ def _looks_like_gibberish(question: str) -> bool:
     return False
 
 
+# "Yazı xətası yoxla / xülasə ver / risk var?" kimi suallar üçün LLM-ə yenidən sormaq
+# əvəzinə, sənəd yükləndikdə DƏQİQ bunun üçün yazılmış prompt-la (bax: ai.py SYSTEM_PROMPT)
+# artıq hesablanmış nəticələri (Analysis) birbaşa göstəririk. Bu, iki səbəbdən daha
+# etibarlıdır: (1) analiz zamanı istifadə olunan prompt konkret bu tapşırıq üçün yazılıb,
+# çat zamanı istifadə olunan ümumi sual-cavab prompt-undan güclüdür; (2) LLM-i təkrar
+# çağırmadığı üçün nə model zəifliyindən, nə də uzun sənədin kontekst pəncərəsinə
+# sığmamasından əziyyət çəkir.
+GRAMMAR_KEYWORDS = [
+    "yazı xəta", "yazi xeta", "qrammatika", "qramatika", "orfoqrafiya",
+    "syntax", "grammar", "spelling", "орфограф", "грамматик", "синтаксис",
+]
+SUMMARY_KEYWORDS = [
+    "xülasə", "xulase", "nə haqqında", "ne haqqinda", "nə var", "ne var",
+    "nə baş verib", "ne bas verib", "nə barədədir", "ne barededir",
+    "summary", "summarize", "what is this", "what happened", "what's in",
+    "о чём", "что произошло", "краткое содержание", "о чем",
+]
+RISK_KEYWORDS = ["risk", "риск"]
+
+
+def _looks_like_analysis_question(question: str) -> str | None:
+    """Sual grammar/summary/risk niyyətlərindən hansına uyğundursa onu qaytarır, yoxdursa None."""
+    normalized = question.lower()
+    if any(k in normalized for k in GRAMMAR_KEYWORDS):
+        return "grammar"
+    if any(k in normalized for k in RISK_KEYWORDS):
+        return "risk"
+    if any(k in normalized for k in SUMMARY_KEYWORDS):
+        return "summary"
+    return None
+
+
+_ANALYSIS_LABELS = {
+    "az": {"summary": "Xülasə", "risk_score": "Risk balı", "risks": "Risklər", "none": "Aşkar edilmədi.", "grammar": "Yazı/qrammatika xətaları"},
+    "en": {"summary": "Summary", "risk_score": "Risk score", "risks": "Risks", "none": "None found.", "grammar": "Grammar/syntax issues"},
+    "ru": {"summary": "Резюме", "risk_score": "Оценка риска", "risks": "Риски", "none": "Не обнаружено.", "grammar": "Орфографические/грамматические ошибки"},
+}
+
+
+def _direct_analysis_answer(intent: str, documents: list[Document], language: str) -> str | None:
+    labels = _ANALYSIS_LABELS.get(language, _ANALYSIS_LABELS["az"])
+    blocks = []
+    for doc in documents:
+        if not doc.analysis:
+            continue
+        lines = [f"📄 {doc.original_filename}"]
+        if intent == "grammar":
+            issues = json.loads(doc.analysis.grammar_issues) if doc.analysis.grammar_issues else []
+            lines.append(f"{labels['grammar']}: " + ("; ".join(issues) if issues else labels["none"]))
+        elif intent == "risk":
+            risks = json.loads(doc.analysis.risks) if doc.analysis.risks else []
+            lines.append(f"{labels['risk_score']}: {doc.analysis.risk_score}%")
+            lines.append(f"{labels['risks']}: " + ("; ".join(risks) if risks else labels["none"]))
+        else:  # summary
+            lines.append(f"{labels['summary']}: {doc.analysis.summary}")
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks) if blocks else None
+
+
 def _document_block(doc: Document) -> str:
     parts = [f"Sənəd: {doc.original_filename}"]
     if doc.analysis:
@@ -464,6 +523,16 @@ def _ask_stream(payload: AskRequest):
                 .join(Document.client)
                 .where(Client.full_name.ilike(f"%{client_filter}%"))
             ).unique().all())
+
+            # Yazı xətası / xülasə / risk sualları — LLM-i yenidən çağırmadan, yükləmə
+            # zamanı artıq hesablanmış (və daha etibarlı) Analysis nəticələrindən cavab veririk.
+            intent = _looks_like_analysis_question(payload.question)
+            if intent and documents:
+                direct_answer = _direct_analysis_answer(intent, documents, payload.language)
+                if direct_answer:
+                    yield _sse("done", answer=direct_answer, sources=[{"filename": d.original_filename, "score": 100.0} for d in documents])
+                    return
+
             candidates = [(_document_block(doc), 1.0, {"filename": doc.original_filename}) for doc in documents]
 
         if not candidates:

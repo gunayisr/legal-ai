@@ -21,14 +21,16 @@
   </script>
 </head>
 <body class="h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100">
-  <div class="mx-auto flex h-screen max-w-7xl bg-base-100/80 shadow-2xl">
-    <aside class="flex h-full w-60 shrink-0 flex-col gap-1.5 overflow-y-auto bg-slate-900 p-4 text-white">
+  <div class="flex h-screen w-full bg-base-100">
+    <div id="sidebarBackdrop" class="fixed inset-0 z-30 hidden bg-black/40 md:hidden"></div>
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex h-full w-64 -translate-x-full flex-col gap-1.5 overflow-y-auto bg-slate-900 p-4 text-white transition-transform duration-200 md:static md:z-auto md:w-60 md:shrink-0 md:translate-x-0">
       <div class="mb-5 flex items-center gap-2">
         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-lg">⚖️</span>
-        <div>
+        <div class="flex-1">
           <div class="text-lg font-extrabold leading-tight">LegalAI</div>
           <div class="text-[11px] text-white/70">Sənəd köməkçisi</div>
         </div>
+        <button id="sidebarClose" class="btn btn-ghost btn-sm border-none text-white/80 md:hidden" aria-label="Menyunu bağla">✕</button>
       </div>
       <button data-view="chat" class="nav-btn btn btn-ghost nav-active justify-start border-none text-white hover:bg-white/15">💬 Chat</button>
       <button data-view="search" class="nav-btn btn btn-ghost justify-start border-none text-white/85 hover:bg-white/15">🔍 Axtarış</button>
@@ -45,49 +47,54 @@
       </div>
     </aside>
 
-    <main class="flex h-full flex-1 flex-col overflow-hidden bg-base-100">
+    <main class="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-base-100">
+      <div class="flex shrink-0 items-center gap-3 border-b border-base-300 bg-white/70 px-4 py-3 backdrop-blur md:hidden">
+        <button id="sidebarToggle" class="btn btn-square btn-sm border-none bg-gray-200 text-slate-800 hover:bg-gray-300" aria-label="Menyu">☰</button>
+        <span class="font-bold text-slate-800">⚖️ LegalAI</span>
+      </div>
+
       <section id="view-chat" class="view flex min-h-0 flex-1 flex-col">
-        <header class="navbar shrink-0 border-b border-base-300 bg-white/70 px-6 backdrop-blur"><div class="flex-1"><span class="font-bold text-slate-800">💬 Chat</span></div></header>
-        <div id="chat" class="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+        <header class="navbar hidden shrink-0 border-b border-base-300 bg-white/70 px-6 backdrop-blur md:flex"><div class="flex-1"><span class="font-bold text-slate-800">💬 Chat</span></div></header>
+        <div id="chat" class="min-h-0 flex-1 space-y-5 overflow-y-auto p-3 sm:p-5">
           <div class="chat chat-start"><div class="chat-image avatar"><div class="w-9 rounded-full bg-slate-800 text-white grid place-items-center">⚖️</div></div><div class="chat-bubble border border-gray-200 bg-gray-100 text-base-content shadow-sm">Salam,<br>analiz edə bilməyim üçün sənəd yüklə.</div></div>
         </div>
-        <footer class="shrink-0 border-t border-base-300 bg-white/70 p-4 backdrop-blur">
+        <footer class="shrink-0 border-t border-base-300 bg-white/70 p-3 backdrop-blur sm:p-4">
           <div id="fileName" class="mb-2 hidden text-sm text-slate-600"></div>
           <form id="chatForm" class="flex items-end gap-2">
             <input id="fileInput" type="file" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png" class="hidden">
-            <button id="attach" type="button" class="btn btn-square border-none bg-gray-200 text-slate-800 hover:bg-gray-300" title="Fayl yüklə">📎</button>
-            <textarea id="message" rows="1" class="textarea textarea-bordered flex-1 resize-none focus:border-slate-400 focus:outline-none" placeholder="Sualınızı yazın... (Enter göndərir, Shift+Enter yeni sətir)"></textarea>
-            <button class="btn border-none bg-slate-900 text-white hover:bg-slate-800" type="submit">Göndər</button>
+            <button id="attach" type="button" class="btn btn-square shrink-0 border-none bg-gray-200 text-slate-800 hover:bg-gray-300" title="Fayl yüklə">📎</button>
+            <textarea id="message" rows="1" class="textarea textarea-bordered min-w-0 flex-1 resize-none focus:border-slate-400 focus:outline-none" placeholder="Sualınızı yazın... (Enter göndərir, Shift+Enter yeni sətir)"></textarea>
+            <button class="btn shrink-0 border-none bg-slate-900 px-3 text-white hover:bg-slate-800 sm:px-4" type="submit"><span class="hidden sm:inline">Göndər</span><span class="sm:hidden">➤</span></button>
           </form>
           <p class="mt-2 text-xs text-base-content/50">AI nəticəsi ilkin yoxlamadır, hüquqi məsləhət deyil.</p>
         </footer>
       </section>
 
-      <section id="view-search" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-6">
+      <section id="view-search" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6">
         <h2 class="mb-1 text-lg font-bold text-slate-800">🔍 Axtarış</h2>
         <p class="mb-4 text-sm text-base-content/60">Ad, soyad, fayl adı və ya sənəd mətninin içindəki sözlərə görə axtarın.</p>
-        <div class="mb-4 flex gap-2">
+        <div class="mb-4 flex flex-col gap-2 sm:flex-row">
           <input id="searchInput" class="input input-bordered flex-1 focus:border-slate-400 focus:outline-none" placeholder="məs. Əli Məmmədov, ya da 'etibarnamə'">
           <button id="searchBtn" class="btn border-none bg-slate-900 text-white hover:bg-slate-800">Axtar</button>
         </div>
         <div id="searchResults" class="space-y-3"></div>
       </section>
 
-      <section id="view-summary" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-6">
+      <section id="view-summary" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6">
         <h2 class="mb-1 text-lg font-bold text-slate-800">📄 Xülasə</h2>
         <p class="mb-4 text-sm text-base-content/60">Yüklənmiş sənədlərdən birini seçin, hazır AI xülasəsinə baxın.</p>
         <select id="summarySelect" class="select select-bordered mb-4 w-full focus:border-slate-400 focus:outline-none"><option value="">Sənəd seçin...</option></select>
         <div id="summaryResult"></div>
       </section>
 
-      <section id="view-deadlines" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-6">
+      <section id="view-deadlines" class="view hidden min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6">
         <h2 class="mb-1 text-lg font-bold text-slate-800">⏰ Müddətlər</h2>
         <p class="mb-4 text-sm text-base-content/60">Yaxınlaşan məhkəmə günləri və müqavilə bitmə tarixləri (müqavilələr yükləndikdə tarix avtomatik tapılır).</p>
         <div id="deadlineList" class="mb-6 space-y-2"></div>
         <div class="divider text-xs text-base-content/50">Yeni tarix əlavə et / axtar</div>
         <p class="mb-2 text-xs text-base-content/50">Tarixi boş buraxıb yalnız müştəri adını yazsan, mövcud müddətlər axtarılır. Tarix də doldursan, yeni yazı əlavə olunur.</p>
-        <form id="deadlineForm" class="grid grid-cols-2 gap-3">
-          <input id="dClient" class="input input-bordered col-span-2 focus:border-slate-400 focus:outline-none" placeholder="Müştəri adı" required>
+        <form id="deadlineForm" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <input id="dClient" class="input input-bordered sm:col-span-2 focus:border-slate-400 focus:outline-none" placeholder="Müştəri adı" required>
           <select id="dType" class="select select-bordered focus:border-slate-400 focus:outline-none">
             <option value="court">Məhkəmə günü</option>
             <option value="contract">Müqavilə bitmə tarixi</option>
@@ -95,7 +102,7 @@
           <input id="dDate" type="datetime-local" class="input input-bordered focus:border-slate-400 focus:outline-none">
           <input id="dCase" class="input input-bordered focus:border-slate-400 focus:outline-none" placeholder="İş nömrəsi (istəyə görə)">
           <input id="dNote" class="input input-bordered focus:border-slate-400 focus:outline-none" placeholder="Qeyd (istəyə görə)">
-          <button class="btn col-span-2 border-none bg-slate-900 text-white hover:bg-slate-800" type="submit">Əlavə et / Axtar</button>
+          <button class="btn sm:col-span-2 border-none bg-slate-900 text-white hover:bg-slate-800" type="submit">Əlavə et / Axtar</button>
         </form>
       </section>
     </main>
@@ -143,6 +150,15 @@
         }
       }
     }
+
+    // ---- Mobil menyu (off-canvas sidebar) ----
+    const sidebar = document.getElementById('sidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    const openSidebar = () => { sidebar.classList.remove('-translate-x-full'); sidebarBackdrop.classList.remove('hidden'); };
+    const closeSidebar = () => { sidebar.classList.add('-translate-x-full'); sidebarBackdrop.classList.add('hidden'); };
+    document.getElementById('sidebarToggle').onclick = openSidebar;
+    document.getElementById('sidebarClose').onclick = closeSidebar;
+    sidebarBackdrop.onclick = closeSidebar;
 
     document.getElementById('logoutBtn').onclick = () => { sessionStorage.removeItem('legalai_authed'); window.location.href = '/ui/login.html'; };
     document.getElementById('attach').onclick = () => file.click();
@@ -208,6 +224,7 @@
       if (btn.dataset.view === 'search') loadDocuments('');
       if (btn.dataset.view === 'summary') loadSummaryOptions();
       if (btn.dataset.view === 'deadlines') loadDeadlines();
+      closeSidebar();
     });
 
     // ---- Axtarış ----
